@@ -1,45 +1,28 @@
-import { eq } from 'drizzle-orm';
-import { db } from './db';
-import { demoUsers } from './db/schema';
+import express, { Express, Request, Response } from 'express';
+import subjectRouter from './routes/subjects';
+import cors from 'cors';
+import dotenv from 'dotenv';
 
-async function main() {
-  try {
-    console.log('Performing CRUD operations...');
 
-    const [newUser] = await db
-      .insert(demoUsers)
-      .values({ name: 'Admin User', email: 'admin@example.com' })
-      .returning();
+dotenv.config();
 
-    if (!newUser) {
-      throw new Error('Failed to create user');
-    }
+const app: Express = express();
+const PORT = 8000;
 
-    console.log('✅ CREATE: New user created:', newUser);
+app.use(cors({
+    origin: process.env.FRONTEND_URL,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}))
 
-    const foundUser = await db.select().from(demoUsers).where(eq(demoUsers.id, newUser.id));
-    console.log('✅ READ: Found user:', foundUser[0]);
+app.use(express.json());
 
-    const [updatedUser] = await db
-      .update(demoUsers)
-      .set({ name: 'Super Admin' })
-      .where(eq(demoUsers.id, newUser.id))
-      .returning();
+app.use('/subjects', subjectRouter)
 
-    if (!updatedUser) {
-      throw new Error('Failed to update user');
-    }
+app.get('/', (req: Request, res: Response) => {
+  res.send('Hello, World!');
+});
 
-    console.log('✅ UPDATE: User updated:', updatedUser);
-
-    await db.delete(demoUsers).where(eq(demoUsers.id, newUser.id));
-    console.log('✅ DELETE: User deleted.');
-
-    console.log('\nCRUD operations completed successfully.');
-  } catch (error) {
-    console.error('❌ Error performing CRUD operations:', error);
-    process.exit(1);
-  }
-}
-
-main();
+app.listen(PORT, () => {
+  console.log(`Server is running at http://localhost:${PORT}`);
+});
