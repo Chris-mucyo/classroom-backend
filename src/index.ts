@@ -1,17 +1,45 @@
-import express, { Express, Request, Response } from 'express';
+import { eq } from 'drizzle-orm';
+import { db } from './db';
+import { demoUsers } from './db/schema';
 
-const app: Express = express();
-const PORT = 8000;
+async function main() {
+  try {
+    console.log('Performing CRUD operations...');
 
+    const [newUser] = await db
+      .insert(demoUsers)
+      .values({ name: 'Admin User', email: 'admin@example.com' })
+      .returning();
 
-app.use(express.json());
+    if (!newUser) {
+      throw new Error('Failed to create user');
+    }
 
+    console.log('✅ CREATE: New user created:', newUser);
 
-app.get('/', (req: Request, res: Response) => {
-    res.send('Hello, World!');
-});
+    const foundUser = await db.select().from(demoUsers).where(eq(demoUsers.id, newUser.id));
+    console.log('✅ READ: Found user:', foundUser[0]);
 
+    const [updatedUser] = await db
+      .update(demoUsers)
+      .set({ name: 'Super Admin' })
+      .where(eq(demoUsers.id, newUser.id))
+      .returning();
 
-app.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}`);
-});
+    if (!updatedUser) {
+      throw new Error('Failed to update user');
+    }
+
+    console.log('✅ UPDATE: User updated:', updatedUser);
+
+    await db.delete(demoUsers).where(eq(demoUsers.id, newUser.id));
+    console.log('✅ DELETE: User deleted.');
+
+    console.log('\nCRUD operations completed successfully.');
+  } catch (error) {
+    console.error('❌ Error performing CRUD operations:', error);
+    process.exit(1);
+  }
+}
+
+main();
