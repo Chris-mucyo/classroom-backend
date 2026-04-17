@@ -21,7 +21,9 @@ export const subjects = pgTable('subjects', {
     code: varchar('code', { length: 50 }).notNull().unique(),
     description: varchar('description', { length: 500 }),
     ...timestamps,
-});
+}, (table) => [
+    index('subjects_department_id_idx').on(table.departmentId),
+]);
 
 export const departmentRelations= relations(departments, ({ many }) => ({ subjects: many(subjects) }));
 
